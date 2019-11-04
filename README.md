@@ -1,6 +1,13 @@
 # clipw
 Python3 Powered Command Line Password Manager
 
+## Installation:
+
+- Run pip3 install -r requirements.txt to install dependencies (only need pyaes)
+- Clone this repository to your computer. Place `clipw.py` somewhere in your system path (like /usr/local/bin). 
+- Add executable permission to `clipw.py` (chmod +x)
+
+
 ## Usage:
 <pre>
 usage: clipw.py [-h] [-i,--init_database] [-s] [-r GEN_RANDOM] [-o]
@@ -19,7 +26,7 @@ optional arguments:
 
 First, run with -i or --init_database. You will be prompted to enter a master passphrase which will be used to encrypt all of the passwords which you store in the database. Key must be at least 8 and up to 32 characters long. 
 
-## Flowchart
+## Flowchart / Psuedocode
 
 init database:
  - input master key
