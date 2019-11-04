@@ -26,6 +26,43 @@ optional arguments:
 
 First, run with -i or --init_database. You will be prompted to enter a master passphrase which will be used to encrypt all of the passwords which you store in the database. Key must be at least 8 and up to 32 characters long. 
 
+Generate a random password 8 characters long:
+
+<pre>
+$ clipw.py -r 8 
+Master Password: 
+Success!
+Description: test4
+Password: cnY{2k"6|@Ho
+</pre>
+
+Store a password into the database:
+<pre>
+$ clipw.py -s
+Master Password: 
+Success!
+Description: test 
+Password: 
+Confirm: 
+Stored password ok.
+</pre>
+
+Open the database and retrieve a password:
+<pre>
+Master Password: 
+Success!
+ID:  0 Description test 1
+ID:  1 Description gmail
+ID:  2 Description github
+ID:  3 Description test 2
+Enter ID of password to decrypt: 3
+Retrieving ID  3
+Id:  3
+Description: test test 
+Password: lol
+</pre>
+
+
 ## Flowchart / Psuedocode
 
 init database:
