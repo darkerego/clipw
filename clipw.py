@@ -92,8 +92,8 @@ def append_database(new_passwd, pw_description):
     try:
         sqliteConnection = sqlite3.connect(database_file)
         cursor = sqliteConnection.cursor()
-
-        print("Connected to SQLite")
+        if debug:
+            print("Connected to SQLite")
         dataCopy = cursor.execute("select count(*) from Password_Store")
         values = dataCopy.fetchone()
         id = int(values[0])
@@ -111,6 +111,8 @@ def append_database(new_passwd, pw_description):
 
     except sqlite3.Error as error:
         print("Failed to insert Python variable into sqlite table", error)
+    else:
+        print('Stored password ok.')
     finally:
         if sqliteConnection:
             sqliteConnection.close()
@@ -390,7 +392,7 @@ def main():
                 print('Retrieving: ', get)
 
             ret = select_from_db(id=get)
-            print("Id: ", ret[0])
+            # print("Id: ", ret[0])
             print("Description:", ret[1])
             hashed = ret[2]
             decrypted = decrypt_data(hashed, master_pw)
