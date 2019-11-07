@@ -63,7 +63,7 @@ class Hash_pass(object):
         :param self: password to hash
         :return: salt and hash
         """
-        salt, pw_hash = self.hash_new_password()
+        salt, pw_hash = self.hash_new_password(pw)
         salt = salt.hex()
         pw_hash = pw_hash.hex()
         if self.is_correct_password(bytes.fromhex(salt), bytes.fromhex(pw_hash), pw):

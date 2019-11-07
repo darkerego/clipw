@@ -10,7 +10,7 @@ class Sql(object):
         self.sqliteConnection.close()
 
     def init_database(self):
-        global sqliteConnection
+        sqliteConnection = self.sqliteConnection
         try:
 
             sqlite_create_table_query = '''CREATE TABLE Password_Store (

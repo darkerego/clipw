@@ -2,25 +2,34 @@
 Python3 Powered Command Line Password Manager
 
 ## Installation:
-TODO: create install script to place lib dependencies in the right place.
-- Run pip3 install -r requirements.txt to install dependencies (only need pyaes)
+
 - Clone this repository to your computer. Place `clipw.py` somewhere in your system path (like /usr/local/bin). 
-- Add executable permission to `clipw.py` (chmod +x)
+- Run pip3 install -r requirements.txt to install dependencies )
+- Now includes setup.py:
+
+<pre>
+$ python3 setup.py build
+$ python3 setup.py install
+</pre>
 
 
 ## Usage:
 <pre>
-usage: clipw.py [-h] [-i,--init_database] [-s] [-r GEN_RANDOM] [-o]
+usage: clipw [-h] [-i,--init_database] [-o] [-s] [-e] [-d]
+             [-r [GEN_RANDOM [GEN_RANDOM ...]]]
 
 Python Cli Password Manager
 
 optional arguments:
   -h, --help            show this help message and exit
   -i,--init_database    Re|Init Database
-  -s, --store           Enter and store a new password in the database
-  -r GEN_RANDOM, --random GEN_RANDOM
-                        Generate and store a random password of n length
   -o, --open            Open the password database
+  -s, --store           Enter and store a new password in the database
+  -e, --edit            Edit an entry.
+  -d, --delete          Delete an entry
+  -r [GEN_RANDOM [GEN_RANDOM ...]], --random [GEN_RANDOM [GEN_RANDOM ...]]
+                        Generate and store a random password of n length
+
 
 </pre>
 
