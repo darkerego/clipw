@@ -2,7 +2,7 @@
 Python3 Powered Command Line Password Manager
 
 ## Installation:
-
+TODO: create install script to place lib dependencies in the right place.
 - Run pip3 install -r requirements.txt to install dependencies (only need pyaes)
 - Clone this repository to your computer. Place `clipw.py` somewhere in your system path (like /usr/local/bin). 
 - Add executable permission to `clipw.py` (chmod +x)
