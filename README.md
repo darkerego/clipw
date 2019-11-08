@@ -37,14 +37,16 @@ $ python3 setup.py install --user
 
 ## Usage:
 <pre>
-usage: clipw [-h] [-i,--init_database] [-o] [-s] [-e] [-d]
+usage: clipw [-h] [--init,] [-i] [-o] [-s] [-e] [-d]
              [-r [GEN_RANDOM [GEN_RANDOM ...]]]
 
 Python Cli Password Manager
 
 optional arguments:
   -h, --help            show this help message and exit
-  -i,--init_database    Re|Init Database
+  --init, --init_database
+                        Re|Init Database
+  -i, --interactive     Interactive mode
   -o, --open            Open the password database
   -s, --store           Enter and store a new password in the database
   -e, --edit            Edit an entry.
@@ -55,9 +57,25 @@ optional arguments:
 
 </pre>
 
-First, run with -i or --init_database. You will be prompted to enter a master passphrase which will be used to encrypt 
+First, run with --init_database. You will be prompted to enter a master passphrase which will be used to encrypt 
 all of the passwords which you store in the database. Key must be at least 8 and up to 
 32 characters long. Pick a `strong` master passphrase. 
+
+
+##### <b>New</b>: Interactive mode (`clipw -i`)
+
+Interactive mode keeps the program open without having to re-enter the key over and 
+over over every time you need to retrieve a password.
+TODO: add a timeout feature
+
+
+<pre>
+$ clipw -i
+Master Password: 
+Success!
+Running in interactive mode.
+Enter action: store (s), generate: (g), open and select entry: (o), edit entry: (e), delete entry: (d), quit program (q)
+</pre>
 
 Generate a random password 8 characters long:
 

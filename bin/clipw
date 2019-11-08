@@ -20,7 +20,7 @@ def get_args():
     :return: argparse generated object
     """
     parser = argparse.ArgumentParser(description='Python Cli Password Manager')
-    parser.add_argument('--init,', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
+    parser.add_argument('--init', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
     parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', default=False,
                         help='Interactive mode')
     parser.add_argument('-o', '--open', dest='open', help='Open the password database', action='store_true')
