@@ -10,16 +10,14 @@ class HandleAes(object):
     def __init__(self, key):
         self.key = key
 
-
     def encrypt_data(self, data):
         """
         ENCRYPTION
-        AES CRT mode - 256 bit (32 byte) key
+        AES CRT mode - 256 bit (8, 16, or 32 byte) key
         :param data: data to encrypt
         :return: base64 wrapper AES encrypted data
         """
-        key = self.key
-        aes = pyaes.AESModeOfOperationCTR(key)
+        aes = pyaes.AESModeOfOperationCTR(self.key)
         ciphertext = aes.encrypt(data)
         encoded = base64.b64encode(ciphertext).decode('utf-8')
         if debug:
@@ -34,7 +32,6 @@ class HandleAes(object):
         :param data: base64 encoded ciphertext
         :return: plaintext
         """
-        #  key = self.key
         aes = pyaes.AESModeOfOperationCTR(self.key)
         # decrypted data is always binary, need to decode to plaintext
         decoded = base64.b64decode(data)

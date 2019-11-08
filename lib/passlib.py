@@ -5,21 +5,26 @@ from _hashlib import pbkdf2_hmac
 from getpass import getpass
 from os import urandom, mkdir
 from typing import Tuple
-
-from .aes_lib import HandleAes
 from lib.clipw_conf import debug, config_dir, config_file
 
 
-class Hash_pass(object):
+class HashPass(object):
+    """
+    Wrapper Class for password hashing functions
+    """
     def __init__(self):
+        """
+        Empty __init__ function
+        """
         pass
-
 
     def hash_new_password(self, password: str) -> Tuple[bytes, bytes]:
         """
         Hash the provided password with a randomly-generated salt and return the
         salt and hash to store in the database.
+        :return salt, password hash
         """
+
         salt = urandom(16)
         pw_hash = pbkdf2_hmac('sha256', password.encode(), salt, 100000)
         return salt, pw_hash
@@ -30,21 +35,22 @@ class Hash_pass(object):
         :param pw: password
         :return: password with buffering
         """
+
         pw_len = len(pw)
         if pw_len <= 8:
             while pw_len % 8 != 0:
                 pw += '0'
                 pw_len = (len(pw))
-            return pw
         if pw_len <= 16:
             while pw_len % 16 != 0:
                 pw += '0'
                 pw_len = (len(pw))
-            return pw
         if pw_len <= 32:
             while pw_len % 32 != 0:
                 pw += '0'
                 pw_len = (len(pw))
+
+        return pw
 
     def is_correct_password(self, salt: bytes, pw_hash: bytes, password: str) -> bool:
         """
@@ -63,6 +69,7 @@ class Hash_pass(object):
         :param self: password to hash
         :return: salt and hash
         """
+
         salt, pw_hash = self.hash_new_password(pw)
         salt = salt.hex()
         pw_hash = pw_hash.hex()
@@ -78,7 +85,7 @@ class Hash_pass(object):
     def store_master_password(self):
         """
         Upon init, store users master key to disc
-        :return: --
+        :return: True on success
         """
 
         try:
@@ -91,20 +98,20 @@ class Hash_pass(object):
         while True:
             pw = getpass('Password: ')
             pw2 = getpass('Confirm: ')
-            if pw == pw2:
+            try:
+                assert pw == pw2
+            except AssertionError:
+                print('Passwords do not match. Try again')
+            else:
                 pw_len = len(pw)
                 if pw_len > 32 or pw_len < 8:
                     print('Password must be at least 8 and no more than 32 characters.')
-                    exit(1)
                 else:
                     s, p = self.generate_hash(pw)
                     hash_str = str(s + ":" + p)
                     with open(config_file, 'w+') as f:
                         f.write(hash_str)
                     return True
-
-            else:
-                print('Passwords do not match. Try again')
 
     def get_master_password(self):
         """
@@ -129,16 +136,17 @@ class Hash_pass(object):
 
     def store_password(self):
         """
-        Function to encrypt a password before inserting into database
-        :param master_key:
-        :return:
+        Function to get a password and confirm user enters it twice correctly.
+        :return: password
         """
-
         while True:
             pw = getpass('Password: ')
             pw2 = getpass('Confirm: ')
-            if pw == pw2:
-
+            try:
+                assert pw == pw2
+            except AssertionError:
+                print('Passwords do not match.')
+            else:
                 return pw
 
     def random_password(self, n: int = 12) -> object:
@@ -158,5 +166,5 @@ class Hash_pass(object):
 
         password_list = list(password)
         random.SystemRandom().shuffle(password_list)
-        password = ''.join(password_list)
+        password = ''.join(password_list)[:n]
         return password

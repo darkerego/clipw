@@ -8,8 +8,8 @@ import shutil
 from os import mkdir
 from os.path import isfile
 
-import lib.passlib
 from lib import aes_lib
+from lib import passlib
 from lib import sql_functions
 from lib.clipw_conf import *
 
@@ -17,10 +17,12 @@ from lib.clipw_conf import *
 def get_args():
     """
     Argument parser
-    :return: args
+    :return: argparse generated object
     """
     parser = argparse.ArgumentParser(description='Python Cli Password Manager')
-    parser.add_argument('-i,', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
+    parser.add_argument('--init,', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
+    parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', default=False,
+                        help='Interactive mode')
     parser.add_argument('-o', '--open', dest='open', help='Open the password database', action='store_true')
     parser.add_argument('-s', '--store', dest='store', action='store_true', help='Enter and store a new password in'
                                                                                  ' the database')
@@ -28,160 +30,287 @@ def get_args():
     parser.add_argument('-d', '--delete', dest='delete', help='Delete an entry', action='store_true')
     parser.add_argument('-r', '--random', dest='gen_random', help='Generate and store a random password of n length',
                         type=int, default=None, nargs="*")
+
     return parser.parse_args()
 
 
-def main():
+def get_input(_type: str or int, _prompt: str):
     """
-    Program main logic
+    Functions to get and validate input.
+    :param _type: input type: str or int
+    :param _prompt: input prompt
+    :return: input
+    """
+    if _type == 'int':
+        while True:
+            try:
+                io = int(input(_prompt))
+            except TypeError:
+                print('Enter a valid integer.')
+            else:
+                return io
+    elif _type == 'str':
+        while True:
+            try:
+                io = str(input(_prompt))
+            except TypeError:
+                print('Enter a valid string.')
+            else:
+                return io
+
+
+def get_selection(_prompt: str, opts: list, _type: int or str):
+    """
+    Function to handle selecting input from a list of options
+    :param _type:
+    :param _prompt: input prompt
+    :param opts: list of choices
+    :return: selected option
+    """
+    while True:
+        try:
+            selection = _type(input(_prompt))
+        except TypeError:
+            print('Invalid input type.')
+        else:
+            if selection in opts:
+                return selection
+            else:
+                print("%d is not a valid option" % selection)
+
+
+def init_database():
+    """
+    Initialize the database
     :return:
     """
+    print('Initializing database ... %s' % database_file)
+    try:
+        mkdir(config_dir)
+    except FileExistsError:
+        pass
+    if isfile(database_file):
+        remove_db = input('[!] Database file found, would you like to delete it? (y/n) :')
+        if remove_db.lower() == 'y':
+            print('Making a backup of current database ...')
+        shutil.move(database_file, database_file + '.orig')
 
-    args = get_args()
+    sql_ = sql_functions.Sql()
+    hash_pass_ = passlib.HashPass()
+    hash_pass_.store_master_password()
 
-    if args.init_db:
-        print('Initializing database ... %s' % database_file)
+    if sql_.init_database():
+        print('Successfully initialized the database.')
+    sql_.close()
 
+
+def store_pass():
+    """
+    Store a password from standard input
+    :return:
+    """
+    pw_description = input('Password Description: ')
+    new_pass = hash_pass.store_password()
+    encrypted_pw = aes.encrypt_data(new_pass)
+    sql.append_database(encrypted_pw, pw_description)
+    return True
+
+
+def generate_random_pw(pw_len=None):
+    pw_description = input('Password Description: ')
+    if not pw_len:
+        pw_len = [8]
+    new_pw = hash_pass.random_password(pw_len[0])
+    encrypted_pw = aes.encrypt_data(new_pw)
+    sql.append_database(encrypted_pw, pw_description)
+    print(str('Password: %s' % new_pw))
+    return new_pw
+
+
+def open_db():
+    """
+    Function to open the database and retrieve an entry
+    :return:
+    """
+    id_desc = sql.open_database()
+    print('-------------------------------')
+    print('      Password Database:       ')
+    print('-------------------------------')
+    for i in id_desc:
+        print('ID: ', i[0], "Description", i[1])
+    print('-------------------------------')
+    get_entry = get_input('int', 'Enter ID of password to decrypt: ')
+
+    ret = sql.select_from_db(id=get_entry)
+    if ret is None:
+        print('%d is not a valid entry. Try again.' % get_entry)
+    else:
+        print("Id: ", ret[0])
+        print("Description:", ret[1])
+        hashed = ret[2]
         try:
-            mkdir(config_dir)
-        except FileExistsError:
-            pass
-        if isfile(database_file):
-            remove_db = input('[!] Database file found, would you like to delete it? (y/n) :')
-            if remove_db.lower() == 'y':
-                print('Making a backup of current database ...')
-            shutil.move(database_file, database_file + '.orig')
+            decrypted = aes.decrypt_data(hashed)
+        except UnicodeDecodeError as err:
+            print('Error decrypting password:', err)
+        except Exception as err:
+            print('Error decrypting password:', err)
+        else:
+            print('Password:', decrypted)
 
-        sql = sql_functions.Sql()
-        hash_pass = lib.passlib.Hash_pass()
 
-        hash_pass.store_master_password()
-        sql.init_database()
-        sql.close()
+def edit_db_entry():
+    """
+    Function to edit a database entry
+    :return:
+    """
+    id_desc = sql.open_database()
+    ids = []
+    for i in id_desc:
+        print('ID: ', i[0], "Description", i[1])
+        ids.append(i[0])
+    entry_edit = get_selection(_prompt='Enter ID of entry to edit: ', opts=ids, _type=int)
+    ret = sql.select_from_db(id=entry_edit)
+    print('Fields: ')
+    print('ID:', ret[0])
+    print('[1] Description', ret[1])
+    show_pass = input('Show password (y/n)? : ')
+    if show_pass == 'y':
+        hashed = ret[2]
+        decrypted = aes.decrypt_data(hashed)
+        print('[2] Password:', decrypted)
+    else:
+        print('[2] Password: x-x-x-x-x')
+
+    edit_field = get_selection('Enter field of entry to edit. (1: Description, 2: Password)',
+                               opts=[1, 2], _type=int)
+    if edit_field == 1:
+        new_description = input('Description: ')
+        try:
+            sql.edit_database(id=entry_edit, field='desc', data=new_description)
+        except Exception as err:
+            print('Error editing entry:', err)
+        else:
+            return True
+    if edit_field == 2:
+        suggest_password = input('Generate new random password? (y/n): ')
+        if suggest_password == 'y':
+            new_pw = hash_pass.random_password(16)
+        else:
+            new_pw = input('Enter new password: ')
+        if new_pw is not None:
+            encrypted_pw = aes.encrypt_data(new_pw)
+            try:
+                sql.edit_database(id=entry_edit, field='pass_hash', data=encrypted_pw)
+            except Exception as err:
+                print('Error editing entry:', err)
+            else:
+                return True
+        else:
+            print('Error: password is None.')
+            return False
+
+
+def delete_entry_from_db():
+    """
+    Function to delete an entry from the database.
+    :return:
+    """
+    id_desc = sql.open_database()
+    ids = []
+    for i in id_desc:
+        print('ID: ', i[0], "Description", i[1])
+        ids.append(i[0])
+    get = get_selection(_prompt='Entry to delete: ', opts=ids, _type=int)
+    if debug:
+        print('Retrieving: ', get)
+    ret = sql.delete_from_database(id=get)
+    if ret:
+        print(ret)
+    else:
+        print('Error deleting from database.')
+        return False
+
+
+def app():
+    """
+    Program main logic
+    :return: -- print to stdout
+    """
+    global sql, hash_pass, master_pw, aes
+    args = get_args()
+    if args.init_db:
+        init_database()
         exit(0)
     else:
         sql = sql_functions.Sql()
-        hash_pass = lib.passlib.Hash_pass()
+        hash_pass = passlib.HashPass()
         master_pw = hash_pass.get_master_password()
         aes = aes_lib.HandleAes(key=master_pw)
 
-        if args.store:
-            pw_description = input('Description: ')
-
-            new_passwd = hash_pass.store_password()
-            encrypted_pw = aes.encrypt_data(new_passwd)
-            sql.append_database(encrypted_pw, pw_description)
+        if args.interactive:
+            print('Running in interactive mode.')
+            while True:
+                try:
+                    action = get_selection("Enter action: store (s), generate: (g), open and select entry: (o), "
+                                           "edit entry: "
+                                           "(e), delete entry: (d), quit program (q) ",
+                                           opts=["s", "g", "o", "e", "d", "q"], _type=str)
+                except KeyboardInterrupt:
+                    break
+                except Exception as err:
+                    print(err)
+                else:
+                    action = action.lower()
+                    print('Selected:', action)
+                    if action == 's':
+                        store_pass()
+                    elif action == 'g':
+                        pw_len = get_input('int', 'Password Length: ')
+                        ret = generate_random_pw([pw_len])
+                        if ret:
+                            print(ret)
+                    elif action == 'o':
+                        open_db()
+                    elif action == 'e':
+                        edit_db_entry()
+                    elif action == 'd':
+                        delete_entry_from_db()
+                    elif action == 'q':
+                        break
+                    else:
+                        raise ValueError('Invalid Selection')
             sql.close()
+            print('Quitting...')
             exit(0)
+
+        if args.store:
+            store_pass()
 
         if args.gen_random is not None:
-            pw_description = input('Description: ')
             pw_len = args.gen_random
-            if not pw_len:
-                pw_len = [8]
-            new_pw = hash_pass.random_password(pw_len[0])
-            encrypted_pw = aes.encrypt_data(new_pw)
-            sql.append_database(encrypted_pw, pw_description)
-            print('Password:', new_pw)
-            exit(0)
+            ret = generate_random_pw(pw_len)
+            if ret:
+                print(ret)
+
         if args.open:
-            id_desc = sql.open_database()
-            for i in id_desc:
-                print('ID: ', i[0], "Description", i[1])
-            get = input('Enter ID of password to decrypt: ')
-            try:
-                get = int(get)
-            except ValueError:
-                print('Enter an integer!')
-            else:
-                if debug:
-                    print('Retrieving: ', get)
-                ret = sql.select_from_db(id=get)
-                print("Id: ", ret[0])
-                print("Description:", ret[1])
-                hashed = ret[2]
-                decrypted = aes.decrypt_data(hashed)
-                print('Password:', decrypted)
-                sql.close()
+            open_db()
 
         if args.edit:
-            """ This is the broken update logic, see edit_database() function"""
-            id_desc = sql.open_database()
-            for i in id_desc:
-                print('ID: ', i[0], "Description", i[1])
-            get = input('Enter ID of entry to edit: ')
-            try:
-                get = int(get)
-            except ValueError:
-                print('Enter an integer!')
-            else:
-                ret = sql.select_from_db(id=get)
-                print('Fields: ')
-                print('ID:', ret[0])
-                print('[1] Description', ret[1])
-                show_passwd = input('Show password (y/n)? : ')
-                if show_passwd == 'y':
-                    hashed = ret[2]
-                    decrypted = aes.decrypt_data(hashed)
-                    print('[2] Password:', decrypted)
-                else:
-                    print('[2] Password: x-x-x-x-x')
+            edit_db_entry()
 
-                print('Enter field to edit. Enter 1 for description, 2 for password ...')
-
-                while True:
-                    try:
-                        edit_field = int(input('Enter field: '))
-                    except TypeError:
-                        print('Enter either 1 (description) or 2 (password)')
-                    else:
-                        break
-                if edit_field == 1:
-                    new_description = input('Description: ')
-                    try:
-                        sql.edit_database(id=get, field='desc', data=new_description)
-                    except Exception as err:
-                        print('Error editing entry:', err)
-                    finally:
-                        sql.close()
-                        return
-                if edit_field == 2:
-                    suggest_password = input('Generate new random password? (y/n): ')
-                    if suggest_password == 'y':
-                        new_pw = hash_pass.random_password(16)
-                    else:
-                        new_pw = input('Enter new password: ')
-                    if new_pw is not None:
-                        encrypted_pw = aes.encrypt_data(new_pw)
-                        try:
-                            sql.edit_database(id=get, field='pass_hash', data=encrypted_pw)
-                        except Exception as err:
-                            print('Error editing entry:', err)
-                        finally:
-                            sql.close()
-
-                    else:
-                        print('Error: password is None. ')
-                        return False
         if args.delete:
-            id_desc = sql.open_database()
-            for i in id_desc:
-                print('ID: ', i[0], "Description", i[1])
-            get = input('Enter ID of entry to delete: ')
-            try:
-                get = int(get)
-            except ValueError:
-                print('Enter an integer!')
-            else:
-                if debug:
-                    print('Retrieving: ', get)
-                ret = sql.delete_from_database(id=get)
-                if ret:
-                    print(ret)
-                else:
-                    exit(1)
+            delete_entry_from_db()
+
+
+def main():
+    try:
+        app()
+    except KeyboardInterrupt:
+        print('Caught Signal, exiting ...')
+    finally:
+        sql.close()
+        exit(0)
 
 
 if __name__ == "__main__":
-
     main()

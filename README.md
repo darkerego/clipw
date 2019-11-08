@@ -1,15 +1,37 @@
 # clipw
 Python3 Powered Command Line Password Manager
 
+<b> Description: </b>
+
+
+<p>Clipw is a very simply, secure (audits welcome) command line interface, python3 powered 
+password manager! Store a password, and a description; with the option to create secure random 
+passwords. Notice: This is work in progress. New features will be added as I get to them. 
+If you want to fork and help out, pull requests are welcome.
+</p>
+
+<b>Features: </b>
+
+- Fast sqlite powered database
+- Passwords encrypted in AES-CRT using pure python package `pyaes`
+- Libs organized into neat packages for easy reuse or expansion
+- Functional setup.py script includes
+- Option to store or generate a random password
+- Simple cli friendly interface
+- Pure python3
+
+</b>
+
+
 ## Installation:
 
-- Clone this repository to your computer. Place `clipw.py` somewhere in your system path (like /usr/local/bin). 
+- Clone this repository to your computer. 
 - Run pip3 install -r requirements.txt to install dependencies )
 - Now includes setup.py:
 
 <pre>
 $ python3 setup.py build
-$ python3 setup.py install
+$ python3 setup.py install --user
 </pre>
 
 
@@ -33,7 +55,9 @@ optional arguments:
 
 </pre>
 
-First, run with -i or --init_database. You will be prompted to enter a master passphrase which will be used to encrypt all of the passwords which you store in the database. Key must be at least 8 and up to 32 characters long. 
+First, run with -i or --init_database. You will be prompted to enter a master passphrase which will be used to encrypt 
+all of the passwords which you store in the database. Key must be at least 8 and up to 
+32 characters long. Pick a `strong` master passphrase. 
 
 Generate a random password 8 characters long:
 
