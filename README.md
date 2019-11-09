@@ -1,7 +1,7 @@
 # clipw
 Python3 Powered Command Line Password Manager
 
-<b> Description: </b>
+### Description:
 
 
 <p>Clipw is a very simply, secure (audits welcome) command line interface, python3 powered 
@@ -10,7 +10,7 @@ passwords. Notice: This is work in progress. New features will be added as I get
 If you want to fork and help out, pull requests are welcome.
 </p>
 
-<b>Features: </b>
+### Features:
 
 - Fast sqlite powered database
 - Passwords encrypted in AES-CRT using pure python package `pyaes`
@@ -20,10 +20,10 @@ If you want to fork and help out, pull requests are welcome.
 - Simple cli friendly interface
 - Pure python3
 
-</b>
 
 
-## Installation:
+
+### Installation:
 
 - Clone this repository to your computer. 
 - Run pip3 install -r requirements.txt to install dependencies )
@@ -35,7 +35,7 @@ $ python3 setup.py install --user
 </pre>
 
 
-## Usage:
+### Usage:
 <pre>
 usage: clipw [-h] [--init,] [-i] [-o] [-s] [-e] [-d]
              [-r [GEN_RANDOM [GEN_RANDOM ...]]]
@@ -114,16 +114,16 @@ Password: lol
 </pre>
 
 
-## Flowchart / Psuedocode
+### Flowchart / Psuedocode
 
-init database:
+- init database:
  - input master key
    - Check keysize - add padding for AES compliance if necessary
  - hash master key
  - store hash in file
  - create empty database
 
- generate_password:
+- generate_password:
  - store from getpass || generate random password
  - encrypt password
  - get description data
@@ -142,4 +142,3 @@ init database:
   - if incorrect:
     - prompt to try again
     
-  TODO: Add a function to edit current entries
