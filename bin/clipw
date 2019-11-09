@@ -302,13 +302,13 @@ def app():
             delete_entry_from_db()
 
 
+
 def main():
     try:
         app()
     except KeyboardInterrupt:
         print('Caught Signal, exiting ...')
     finally:
-        sql.close()
         exit(0)
 
 

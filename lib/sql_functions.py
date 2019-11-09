@@ -50,6 +50,7 @@ class Sql(object):
             print("Error while creating a sqlite table:", error)
             return False
 
+
     def edit_database(self, id, data, field):
         """
         Broken function to update a field of a row in the table
@@ -104,6 +105,7 @@ class Sql(object):
             return False
         else:
             print('Stored password ok.')
+
 
     def open_database(self):
         """
