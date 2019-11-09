@@ -1,7 +1,6 @@
 # clipw
 Python3 Powered Command Line Password Manager
 
-# Note: Something is broken, check back later ... 
 
 ### Description:
 
