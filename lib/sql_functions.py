@@ -2,18 +2,23 @@ import sqlite3
 from .clipw_conf import *
 
 
-class Sql(object):
+class Sql:
     """
     Wrapper object to handle sqlite functions
     """
     def __init__(self):
+        pass
+
+    def open(self):
         """
-        Connect to SQL database
+            Connect to SQL database
         """
         try:
             self.sqlite_connection = sqlite3.connect(database_file)
         except Exception as err:
             print('Error connecting to database:', err)
+        else:
+            return self.sqlite_connection
 
     def close(self):
         """
@@ -31,7 +36,7 @@ class Sql(object):
         Function to init database on first run.
         :return:
         """
-        sqlite_connection = self.sqlite_connection
+        sqlite_connection = self.open()
         try:
 
             sqlite_create_table_query = '''CREATE TABLE Password_Store (
@@ -49,7 +54,8 @@ class Sql(object):
         except sqlite3.Error as error:
             print("Error while creating a sqlite table:", error)
             return False
-
+        finally:
+            self.close()
 
     def edit_database(self, id, data, field):
         """
@@ -59,7 +65,8 @@ class Sql(object):
         :param field: either desc (description) or pass_hash (password hash of entry)
         :return: True om success, false om fail
         """
-        sqlite_connection = self.sqlite_connection
+        #  sqlite_connection = self.sqlite_connection
+        sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()  # define our sqlite connection
             print("Connected to SQLite")
@@ -75,6 +82,8 @@ class Sql(object):
         except sqlite3.Error as error:
             print("Failed to update sqlite table", error)
             return False
+        finally:
+            self.close()
 
     def append_database(self, new_passwd, pw_description):
         """
@@ -82,7 +91,8 @@ class Sql(object):
         :param pw_description: entry's password description to append
         :return:
         """
-        sqlite_connection = self.sqlite_connection
+        #  sqlite_connection = self.sqlite_connection
+        sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()
             if debug:
@@ -105,14 +115,16 @@ class Sql(object):
             return False
         else:
             print('Stored password ok.')
-
+        finally:
+            self.close()
 
     def open_database(self):
         """
         :param master_pw:
         :return:
         """
-        sqlite_connection = self.sqlite_connection
+        #  sqlite_connection = self.sqlite_connection
+        sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()
             if debug:
@@ -132,6 +144,10 @@ class Sql(object):
         except sqlite3.Error as error:
             print("Failed to read data from sqlite table", error)
             return False
+        except Exception as err:
+            print('Unknown error:', err)
+        finally:
+            self.close()
 
     def select_from_db(self, id):
         """
@@ -139,7 +155,8 @@ class Sql(object):
         :param id: primary key of password to get
         :return: aes encrypted password
         """
-        sqlite_connection = self.sqlite_connection
+        # sqlite_connection = self.sqlite_connection
+        sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()
             if debug:
@@ -155,10 +172,12 @@ class Sql(object):
         except sqlite3.Error as error:
             print("Failed to read data from sqlite table", error)
             return False
+        finally:
+            self.close()
 
     def delete_from_database(self, id):
+        sqlite_connection = self.open()
         try:
-            sqlite_connection = self.sqlite_connection
             cursor = sqlite_connection.cursor()
             if debug:
                 print("Connected to SQLite")
@@ -171,3 +190,5 @@ class Sql(object):
         except sqlite3.Error as error:
             print("Failed to delete record from sqlite table", error)
             return False
+        finally:
+            self.close()

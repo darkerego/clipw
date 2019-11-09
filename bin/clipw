@@ -5,33 +5,16 @@ Author: Darkerego ~ November, 2019 <xelectron@protonmail.com>
 """
 import argparse
 import shutil
-from os import mkdir
+import signal
+import threading
+from os import mkdir, kill, getpid
 from os.path import isfile
+from sys import argv
 
 from lib import aes_lib
 from lib import passlib
 from lib import sql_functions
 from lib.clipw_conf import *
-
-
-def get_args():
-    """
-    Argument parser
-    :return: argparse generated object
-    """
-    parser = argparse.ArgumentParser(description='Python Cli Password Manager')
-    parser.add_argument('--init', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
-    parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', default=False,
-                        help='Interactive mode')
-    parser.add_argument('-o', '--open', dest='open', help='Open the password database', action='store_true')
-    parser.add_argument('-s', '--store', dest='store', action='store_true', help='Enter and store a new password in'
-                                                                                 ' the database')
-    parser.add_argument('-e', '--edit', dest='edit', help='Edit an entry.', action='store_true')
-    parser.add_argument('-d', '--delete', dest='delete', help='Delete an entry', action='store_true')
-    parser.add_argument('-r', '--random', dest='gen_random', help='Generate and store a random password of n length',
-                        type=int, default=None, nargs="*")
-
-    return parser.parse_args()
 
 
 def get_input(_type: str or int, _prompt: str):
@@ -102,6 +85,7 @@ def init_database():
     if sql_.init_database():
         print('Successfully initialized the database.')
     sql_.close()
+    aes.remove_from_mem()
 
 
 def store_pass():
@@ -123,7 +107,7 @@ def generate_random_pw(pw_len=None):
     new_pw = hash_pass.random_password(pw_len[0])
     encrypted_pw = aes.encrypt_data(new_pw)
     sql.append_database(encrypted_pw, pw_description)
-    print(str('Password: %s' % new_pw))
+    #  print(str('Password: %s' % new_pw))
     return new_pw
 
 
@@ -133,12 +117,12 @@ def open_db():
     :return:
     """
     id_desc = sql.open_database()
-    print('-------------------------------')
-    print('      Password Database:       ')
-    print('-------------------------------')
+    print('--------------------------------------------------------------')
+    print('                      Password Database:                      ')
+    print('--------------------------------------------------------------')
     for i in id_desc:
         print('ID: ', i[0], "Description", i[1])
-    print('-------------------------------')
+    print('--------------------------------------------------------------')
     get_entry = get_input('int', 'Enter ID of password to decrypt: ')
 
     ret = sql.select_from_db(id=get_entry)
@@ -231,24 +215,86 @@ def delete_entry_from_db():
         return False
 
 
+def get_args():
+    """
+    Argument parser
+    :return: argparse generated object
+    """
+    parser = argparse.ArgumentParser(description='Python Cli Password Manager')
+    parser.add_argument('--init', '--init_database', dest='init_db', action='store_true', help='Re|Init Database')
+    parser.add_argument('-i', '--interactive', dest='interactive', action='store_true', default=False,
+                        help='Interactive mode')
+    parser.add_argument('-t,', '--timeout', default=600, type=int, dest='timeout', help='Override timeout - close after'
+                                                                                        'this amount of seconds.')
+    parser.add_argument('-o', '--open', dest='open', help='Open the password database', action='store_true')
+    parser.add_argument('-s', '--store', dest='store', action='store_true', help='Enter and store a new password in'
+                                                                                 ' the database')
+    parser.add_argument('-e', '--edit', dest='edit', help='Edit an entry.', action='store_true')
+    parser.add_argument('-d', '--delete', dest='delete', help='Delete an entry', action='store_true')
+    parser.add_argument('-r', '--random', dest='gen_random', help='Generate and store a random password of n length',
+                        type=int, default=None, nargs="*")
+
+    return parser.parse_args()
+
+
+def cleanup():
+    """
+    Cleanup function for security
+    :return:
+    """
+    aes.remove_from_mem()
+
+
+class TimeOutTime:
+    """
+    Empty object to hold specified timeout seconds
+    """
+
+    def __init__(self, secs):
+        """
+        Init Function
+        :param secs: seconds before timeout
+        """
+        self.secs = secs
+
+    def get(self):
+        """
+        Return specified seconds
+        :return: secs
+        """
+        return int(self.secs)
+
+
 def app():
     """
     Program main logic
     :return: -- print to stdout
     """
-    global sql, hash_pass, master_pw, aes
     args = get_args()
+    try:
+        program_name = argv[0]
+    except Exception:
+        program_name = 'clipw'
+
+    global sql, hash_pass, aes
+
     if args.init_db:
         init_database()
         exit(0)
     else:
+        if not (args.open or args.store or args.edit or args.delete or args.gen_random or args.interactive):
+            print("Run %s -i for interactive or --help for usage" % program_name)
+            exit(1)
         sql = sql_functions.Sql()
         hash_pass = passlib.HashPass()
-        master_pw = hash_pass.get_master_password()
-        aes = aes_lib.HandleAes(key=master_pw)
+        aes = aes_lib.HandleAes(key=hash_pass.get_master_password())
 
         if args.interactive:
-            print('Running in interactive mode.')
+            timeout = args.timeout
+            to = TimeOutTime(timeout)
+            wd = Watchdog(to.get())
+            wd.start()
+            print('Running in interactive mode. ')
             while True:
                 try:
                     action = get_selection("Enter action: store (s), generate: (g), open and select entry: (o), "
@@ -260,6 +306,13 @@ def app():
                 except Exception as err:
                     print(err)
                 else:
+                    try:
+                        sql = sql_functions.Sql()
+                    except Exception as err:
+                        if debug:
+                            print('Error with SQL:', err)
+                        pass
+                    wd.refresh()
                     action = action.lower()
                     print('Selected:', action)
                     if action == 's':
@@ -268,7 +321,7 @@ def app():
                         pw_len = get_input('int', 'Password Length: ')
                         ret = generate_random_pw([pw_len])
                         if ret:
-                            print(ret)
+                            print('Password:', ret)
                     elif action == 'o':
                         open_db()
                     elif action == 'e':
@@ -279,9 +332,8 @@ def app():
                         break
                     else:
                         raise ValueError('Invalid Selection')
-            sql.close()
             print('Quitting...')
-            exit(0)
+            wd.do_expire()
 
         if args.store:
             store_pass()
@@ -290,7 +342,7 @@ def app():
             pw_len = args.gen_random
             ret = generate_random_pw(pw_len)
             if ret:
-                print(ret)
+                print("Password", ret)
 
         if args.open:
             open_db()
@@ -300,7 +352,40 @@ def app():
 
         if args.delete:
             delete_entry_from_db()
+        # Remove the master key from memory on exit
+        cleanup()
 
+
+class Watchdog:
+    def __init__(self, _timeout=600):
+        self.timeout = _timeout
+        self._t = None
+        self.wd_debug = False  # debug messages
+
+    def do_expire(self):
+        cleanup()
+        kill(getpid(), signal.SIGKILL)
+
+    def _expire(self):
+        print("\nTimeout expired, exiting for security...")
+        self.do_expire()
+
+    def start(self):
+        if self._t is None:
+            self._t = threading.Timer(self.timeout, self._expire)
+            self._t.start()
+
+    def stop(self):
+        if self._t is not None:
+            self._t.cancel()
+            self._t = None
+
+    def refresh(self):
+        if self.wd_debug:
+            print('Debug message: watchdog refresh.')
+        if self._t is not None:
+            self.stop()
+            self.start()
 
 
 def main():

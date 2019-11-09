@@ -10,6 +10,9 @@ class HandleAes(object):
     def __init__(self, key):
         self.key = key
 
+    def remove_from_mem(self):
+        self.key = None
+
     def encrypt_data(self, data):
         """
         ENCRYPTION
