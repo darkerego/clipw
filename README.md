@@ -20,16 +20,27 @@ Note: So far only tested on Android (termux) & Linux - TODO: test on windows , o
 ### Features:
 
 - Fast sqlite powered database
-- Passwords encrypted in AES-CRT using pure python package `pyaes`
+  - simple db structure
+  - --init_database function makes copy of old db first
+  - TODO: Add fields for timestamp, URL, username, etc 
+- Passwords encrypted in AES-CRT 256
+  - no system compiled libaries needed (unlike pycrypto)
+  - Encrypted with a master passphrase (hashed & salted 1000000x via sha-256)
 - Libs organized into neat packages for easy reuse or expansion
-- Functional setup.py script includes
+  - For developers: Portable libraries for AES, Password Hashing, SQL, and configuration
+- Easy install via setup.py script
 - Option to store or generate a random password of `n` length
 - Simple cli friendly interface
   - Interactive mode 
     - Keeps db unlocked until timeout expires for security
   - Quick command line functionality with argparse
+    - see usage below
+  - Reset console after timeout/on program exit(for security)
+   - Timeout time configurable
+     - defaults to 600 seconds / 10 minutes
 - Pure python3
   - Encryption uses `pyaes`, no OS libraries needed.
+  - Dependencies minimized, only needs `pyaes`
 
 
 
@@ -48,7 +59,7 @@ $ python3 setup.py install --user
 
 ### Usage:
 <pre>
-usage: clipw [-h] [--init,] [-i] [-o] [-s] [-e] [-d]
+usage: clipw [-h] [--init] [-i] [-t, TIMEOUT] [-o] [-s] [-e] [-d]
              [-r [GEN_RANDOM [GEN_RANDOM ...]]]
 
 Python Cli Password Manager
@@ -58,12 +69,15 @@ optional arguments:
   --init, --init_database
                         Re|Init Database
   -i, --interactive     Interactive mode
+  -t, TIMEOUT, --timeout TIMEOUT
+                        Override timeout - close afterthis amount of seconds.
   -o, --open            Open the password database
   -s, --store           Enter and store a new password in the database
   -e, --edit            Edit an entry.
   -d, --delete          Delete an entry
   -r [GEN_RANDOM [GEN_RANDOM ...]], --random [GEN_RANDOM [GEN_RANDOM ...]]
                         Generate and store a random password of n length
+
 
 
 </pre>
@@ -127,29 +141,42 @@ Password: lol
 
 ### Flowchart / Psuedocode
 
+Functions:
+
 - init database:
- - input master key
-   - Check keysize - add padding for AES compliance if necessary
- - hash master key
- - store hash in file
- - create empty database
+  - input master key
+    - Check keysize - add padding for AES compliance if necessary
+   - hash & salt master key
+   - store hash in file
+   - create empty database
 
-- generate_password:
- - store from getpass || generate random password
- - encrypt password
- - get description data
- - store encrypted password in database with description data
 
- open_database:
- - prompt use for master key
- - check master key against stored hash
-  - if correct:
-    - open database
-     - iterate through database
-     - display description with numeric id
-     - prompt for id of password to retrieve
-     - show password
-     -exit
-  - if incorrect:
-    - prompt to try again
+- generate_password / store:
+   - store from getpass || generate random password
+   - encrypt password
+   - get description data
+   - append to db: encrypted password with description data
+
+ - open_database:
+   - prompt use for master key
+   - check master key against stored hash
+    - if correct:
+      - open database
+       - iterate through database
+       - display description with numeric id
+       - prompt for id of password to retrieve
+       - show password
+       - clean exit (security features:)
+         - remove AES key from memory
+         - reset console
+   - if incorrect:
+     - <s> prompt to try again</s> (?)
+     - nah, just exit
     
+- Interactive Mode:
+  - Run in while loop
+    - Get selection (store (s), generate: (g), open and select entry: (o), edit entry: (e), delete entry: (d), quit program (q))
+    -  Perform action
+    - Repeat until SIGINT or Lock Timeout reached then break
+      - clean master key from memory
+      - exit
