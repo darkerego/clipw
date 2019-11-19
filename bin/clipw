@@ -4,12 +4,16 @@ CliPassWord Manager - A Very Simple Python3 Powered Command Line Password Manage
 Author: Darkerego ~ November, 2019 <xelectron@protonmail.com>
 """
 import argparse
+import platform
 import shutil
 import signal
+import subprocess
 import threading
 from os import mkdir, kill, getpid
 from os.path import isfile
 from sys import argv
+from time import sleep
+from typing import Union, Any, Optional
 
 from lib import aes_lib
 from lib import passlib
@@ -17,18 +21,19 @@ from lib import sql_functions
 from lib.clipw_conf import *
 
 
-def get_input(_type: str or int, _prompt: str):
+def get_input(_type: Union[str, int], _prompt: str) -> Union[str, int, None]:
     """
     Functions to get and validate input.
     :param _type: input type: str or int
     :param _prompt: input prompt
+
     :return: input
     """
     if _type == 'int':
         while True:
             try:
                 io = int(input(_prompt))
-            except TypeError:
+            except ValueError:
                 print('Enter a valid integer.')
             else:
                 return io
@@ -36,24 +41,37 @@ def get_input(_type: str or int, _prompt: str):
         while True:
             try:
                 io = str(input(_prompt))
-            except TypeError:
+            except ValueError:
                 print('Enter a valid string.')
             else:
                 return io
+    elif _type == 'int_or_none':
+        while True:
+            io = input(_prompt)
+            if io:
+                try:
+                    int(io)
+                except ValueError:
+                    print('Enter a valid integer')
+                else:
+                    return io
+            else:
+                return None
 
 
-def get_selection(_prompt: str, opts: list, _type: int or str):
+def get_selection(_prompt: str, opts: list, _type: int or str) -> Union[str, int]:
     """
     Function to handle selecting input from a list of options
-    :param _type:
+    :param _type: type of input to get
     :param _prompt: input prompt
     :param opts: list of choices
+
     :return: selected option
     """
     while True:
         try:
             selection = _type(input(_prompt))
-        except TypeError:
+        except ValueError:
             print('Invalid input type.')
         else:
             if selection in opts:
@@ -62,12 +80,13 @@ def get_selection(_prompt: str, opts: list, _type: int or str):
                 print("%d is not a valid option" % selection)
 
 
-def init_database():
+def init_database() -> bool:
     """
     Initialize the database
-    :return:
+
+    :return: bool
     """
-    print('Initializing database ... %s' % database_file)
+    print(f'Initializing database ... {database_file}')
     try:
         mkdir(config_dir)
     except FileExistsError:
@@ -76,7 +95,7 @@ def init_database():
         remove_db = input('[!] Database file found, would you like to delete it? (y/n) :')
         if remove_db.lower() == 'y':
             print('Making a backup of current database ...')
-        shutil.move(database_file, database_file + '.orig')
+            shutil.move(database_file, database_file + '.orig')
 
     sql_ = sql_functions.Sql()
     hash_pass_ = passlib.HashPass()
@@ -84,14 +103,19 @@ def init_database():
 
     if sql_.init_database():
         print('Successfully initialized the database.')
+    else:
+        print('Error initializing database!')
+        return False
     sql_.close()
     aes.remove_from_mem()
+    return True
 
 
-def store_pass():
+def store_pass() -> bool:
     """
     Store a password from standard input
-    :return:
+
+    :return: bool
     """
     pw_description = input('Password Description: ')
     new_pass = hash_pass.store_password()
@@ -100,21 +124,27 @@ def store_pass():
     return True
 
 
-def generate_random_pw(pw_len=None):
+def generate_random_pw(pw_len: Optional[Any] = None) -> str:
+    """
+    Generate a random password and store to databse
+    :param pw_len: list(int) - length of password
+
+    :return: generated password
+    """
     pw_description = input('Password Description: ')
     if not pw_len:
         pw_len = [8]
     new_pw = hash_pass.random_password(pw_len[0])
     encrypted_pw = aes.encrypt_data(new_pw)
     sql.append_database(encrypted_pw, pw_description)
-    #  print(str('Password: %s' % new_pw))
     return new_pw
 
 
-def open_db():
+def open_db() -> None:
     """
     Function to open the database and retrieve an entry
-    :return:
+
+    :return: None
     """
     id_desc = sql.open_database()
     print('--------------------------------------------------------------')
@@ -125,7 +155,7 @@ def open_db():
     print('--------------------------------------------------------------')
     get_entry = get_input('int', 'Enter ID of password to decrypt: ')
 
-    ret = sql.select_from_db(id=get_entry)
+    ret = sql.select_from_db(id_=get_entry)
     if ret is None:
         print('%d is not a valid entry. Try again.' % get_entry)
     else:
@@ -142,10 +172,11 @@ def open_db():
             print('Password:', decrypted)
 
 
-def edit_db_entry():
+def edit_db_entry() -> bool:
     """
     Function to edit a database entry
-    :return:
+
+    :return: bool
     """
     id_desc = sql.open_database()
     ids = []
@@ -153,7 +184,7 @@ def edit_db_entry():
         print('ID: ', i[0], "Description", i[1])
         ids.append(i[0])
     entry_edit = get_selection(_prompt='Enter ID of entry to edit: ', opts=ids, _type=int)
-    ret = sql.select_from_db(id=entry_edit)
+    ret = sql.select_from_db(id_=entry_edit)
     print('Fields: ')
     print('ID:', ret[0])
     print('[1] Description', ret[1])
@@ -170,7 +201,7 @@ def edit_db_entry():
     if edit_field == 1:
         new_description = input('Description: ')
         try:
-            sql.edit_database(id=entry_edit, field='desc', data=new_description)
+            sql.edit_database(id_=entry_edit, field='desc', data=new_description)
         except Exception as err:
             print('Error editing entry:', err)
         else:
@@ -180,11 +211,11 @@ def edit_db_entry():
         if suggest_password == 'y':
             new_pw = hash_pass.random_password(16)
         else:
-            new_pw = input('Enter new password: ')
+            new_pw = hash_pass.store_password()
         if new_pw is not None:
             encrypted_pw = aes.encrypt_data(new_pw)
             try:
-                sql.edit_database(id=entry_edit, field='pass_hash', data=encrypted_pw)
+                sql.edit_database(id_=entry_edit, field='pass_hash', data=encrypted_pw)
             except Exception as err:
                 print('Error editing entry:', err)
             else:
@@ -194,10 +225,11 @@ def edit_db_entry():
             return False
 
 
-def delete_entry_from_db():
+def delete_entry_from_db() -> bool:
     """
     Function to delete an entry from the database.
-    :return:
+
+    :return: bool
     """
     id_desc = sql.open_database()
     ids = []
@@ -207,7 +239,7 @@ def delete_entry_from_db():
     get = get_selection(_prompt='Entry to delete: ', opts=ids, _type=int)
     if debug:
         print('Retrieving: ', get)
-    ret = sql.delete_from_database(id=get)
+    ret = sql.delete_from_database(id_=get)
     if ret:
         print(ret)
     else:
@@ -215,9 +247,10 @@ def delete_entry_from_db():
         return False
 
 
-def get_args():
+def get_args() -> Any:
     """
     Argument parser
+
     :return: argparse generated object
     """
     parser = argparse.ArgumentParser(description='Python Cli Password Manager')
@@ -237,43 +270,36 @@ def get_args():
     return parser.parse_args()
 
 
-def cleanup():
+def cleanup() -> None:
     """
     Cleanup function for security
-    :return:
+
+    :return: none
     """
+
     aes.remove_from_mem()
-
-
-class TimeOutTime:
-    """
-    Empty object to hold specified timeout seconds
-    """
-
-    def __init__(self, secs):
-        """
-        Init Function
-        :param secs: seconds before timeout
-        """
-        self.secs = secs
-
-    def get(self):
-        """
-        Return specified seconds
-        :return: secs
-        """
-        return int(self.secs)
+    print('Console will clear in 10 seconds [ctrl +c to quit now] ...')
+    try:
+        sleep(10)
+    except KeyboardInterrupt:
+        pass
+    if platform.system() == "Windows":
+        subprocess.Popen("cls",
+                         shell=True).communicate()  # I like to use this instead of subprocess.call since for
+        # multi-word commands you can just type it out, granted this is just cls and subprocess.call should work fine
+    else:  # Linux and Mac
+        print("\033c", end="")
 
 
 def app():
     """
     Program main logic
-    :return: -- print to stdout
+
+    :return: None -- print to stdout
     """
     args = get_args()
-    try:
-        program_name = argv[0]
-    except Exception:
+    program_name = argv[0]
+    if not program_name:
         program_name = 'clipw'
 
     global sql, hash_pass, aes
@@ -291,8 +317,7 @@ def app():
 
         if args.interactive:
             timeout = args.timeout
-            to = TimeOutTime(timeout)
-            wd = Watchdog(to.get())
+            wd = Watchdog(timeout)
             wd.start()
             print('Running in interactive mode. ')
             while True:
@@ -318,7 +343,11 @@ def app():
                     if action == 's':
                         store_pass()
                     elif action == 'g':
-                        pw_len = get_input('int', 'Password Length: ')
+                        pw_len = get_input('int_or_none', 'Password Length (8): ')
+                        if pw_len is None:
+                            pw_len = 8
+                        else:
+                            pw_len = int(pw_len)
                         ret = generate_random_pw([pw_len])
                         if ret:
                             print('Password:', ret)
@@ -356,7 +385,31 @@ def app():
         cleanup()
 
 
+class TimeOutTime:
+    """
+    Empty object to hold specified timeout seconds
+    """
+
+    def __init__(self, secs):
+        """
+        Init Function
+        :param secs: seconds before timeout
+        """
+        self.secs = secs
+
+    def get(self):
+        """
+        Return specified seconds
+        :return: secs
+        """
+        return int(self.secs)
+
+
 class Watchdog:
+    """
+    Class to kill process if idle for specified time \
+    default: 600 seconds / ten minutes
+    """
     def __init__(self, _timeout=600):
         self.timeout = _timeout
         self._t = None

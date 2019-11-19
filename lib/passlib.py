@@ -4,11 +4,11 @@ import string
 from _hashlib import pbkdf2_hmac
 from getpass import getpass
 from os import urandom, mkdir
-from typing import Tuple
+from typing import Tuple, Union, Optional
 from lib.clipw_conf import debug, config_dir, config_file
 
 
-class HashPass(object):
+class HashPass:
     """
     Wrapper Class for password hashing functions
     """
@@ -16,9 +16,10 @@ class HashPass(object):
         """
         Empty __init__ function
         """
-        pass
+        self.name = 'HashPass'
 
     def hash_new_password(self, password: str) -> Tuple[bytes, bytes]:
+
         """
         Hash the provided password with a randomly-generated salt and return the
         salt and hash to store in the database.
@@ -29,7 +30,7 @@ class HashPass(object):
         pw_hash = pbkdf2_hmac('sha256', password.encode(), salt, 100000)
         return salt, pw_hash
 
-    def check_pw_padding(self, pw):
+    def check_pw_padding(self, pw: str) -> str:
         """
         Check that password length is AES compliant, add padding if not
         :param pw: password
@@ -63,11 +64,12 @@ class HashPass(object):
             pbkdf2_hmac('sha256', password.encode(), salt, 100000)
         )
 
-    def generate_hash(self, pw):
+    def generate_hash(self, pw: str) -> Union[Tuple[str, str], bool]:
         """
         Generate a Hash and Salt from a password
-        :param self: password to hash
-        :return: salt and hash
+        :param pw: password to hash
+
+        :return: True or False
         """
 
         salt, pw_hash = self.hash_new_password(pw)
@@ -79,15 +81,13 @@ class HashPass(object):
                 print("Salt: %s" % salt)
                 print("Hash: %s" % pw_hash)
             return salt, pw_hash
-        else:
-            return False
+        return False
 
-    def store_master_password(self):
+    def store_master_password(self) -> bool:
         """
         Upon init, store users master key to disc
         :return: True on success
         """
-
         try:
             mkdir(config_dir)
         except FileExistsError as err:
@@ -103,6 +103,7 @@ class HashPass(object):
             except AssertionError:
                 print('Passwords do not match. Try again')
             else:
+                # assert pw == pw2, 'Passwords do not match. Try again'
                 pw_len = len(pw)
                 if pw_len > 32 or pw_len < 8:
                     print('Password must be at least 8 and no more than 32 characters.')
@@ -113,12 +114,14 @@ class HashPass(object):
                         f.write(hash_str)
                     return True
 
-    def get_master_password(self):
+    # def get_master_password(self):
+    def get_master_password(self) -> Union[bytes, None]:
         """
         Function to create an AES friendly Master Password
         to encrypt all the passwords in the database...
         Because they key needs to be either 8 or 16 characters,
         we will add padding until it if an appropriate length.
+
         :return: byte encoded password string
         """
         with open(config_file, 'r') as ff:
@@ -127,14 +130,14 @@ class HashPass(object):
             _hash = master_hash.split(':')[1]
             master_pw = getpass("Master Password: ")
             if self.is_correct_password(bytes.fromhex(_salt), bytes.fromhex(_hash), master_pw):
-                print('Success!')
+                print('Successfully unlocked.')
                 master_pw = self.check_pw_padding(master_pw)
                 return master_pw.encode()
             else:
                 print('Incorrect Password')
                 exit(1)
 
-    def store_password(self):
+    def store_password(self) -> str:
         """
         Function to get a password and confirm user enters it twice correctly.
         :return: password
@@ -149,7 +152,7 @@ class HashPass(object):
             else:
                 return pw
 
-    def random_password(self, n: int = 12) -> object:
+    def random_password(self, n: Optional[int] = 12) -> str:
         """
         Generate a random password of length n
         :param n: length of password to generate

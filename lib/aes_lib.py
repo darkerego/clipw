@@ -1,19 +1,21 @@
+from typing import Union
+
 import pyaes
 import base64
 from .clipw_conf import *
 
 
-class HandleAes(object):
+class HandleAes:
     """
     AES Encrypt/Decrypt Function
     """
-    def __init__(self, key):
+    def __init__(self, key: object) -> None:
         self.key = key
 
-    def remove_from_mem(self):
+    def remove_from_mem(self) -> None:
         self.key = None
 
-    def encrypt_data(self, data):
+    def encrypt_data(self, data: str) -> Union[str, None]:
         """
         ENCRYPTION
         AES CRT mode - 256 bit (8, 16, or 32 byte) key
@@ -28,7 +30,7 @@ class HandleAes(object):
         # show the encrypted data
         return encoded
 
-    def decrypt_data(self, data):
+    def decrypt_data(self, data: str) -> Union[str, None]:
         """
         DECRYPTION
         AES CRT mode decryption requires a new instance be created

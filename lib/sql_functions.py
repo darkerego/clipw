@@ -1,26 +1,29 @@
 import sqlite3
-from .clipw_conf import *
+from sqlite3.dbapi2 import Connection
 
+from .clipw_conf import *
+from typing import  Union
 
 class Sql:
     """
     Wrapper object to handle sqlite functions
     """
-    def __init__(self):
-        pass
 
-    def open(self):
+    def __init__(self):
+        self.database_file = database_file
+
+    def open(self) -> Connection:
         """
             Connect to SQL database
         """
         try:
-            self.sqlite_connection = sqlite3.connect(database_file)
+            self.sqlite_connection = sqlite3.connect(self.database_file)
         except Exception as err:
             print('Error connecting to database:', err)
         else:
             return self.sqlite_connection
 
-    def close(self):
+    def close(self) -> bool:
         """
         Close connection to SQL database
         :return:
@@ -31,7 +34,7 @@ class Sql:
             print('Error closing database:', err)
             return False
 
-    def init_database(self):
+    def init_database(self) -> bool:
         """
         Function to init database on first run.
         :return:
@@ -57,10 +60,10 @@ class Sql:
         finally:
             self.close()
 
-    def edit_database(self, id, data, field):
+    def edit_database(self, id_, data, field) -> Union[bool, str]:
         """
         Broken function to update a field of a row in the table
-        :param id: primary key id for WHERE clause
+        :param id_: primary key id for WHERE clause
         :param data: edited field data to replace in current db entry
         :param field: either desc (description) or pass_hash (password hash of entry)
         :return: True om success, false om fail
@@ -72,9 +75,9 @@ class Sql:
             print("Connected to SQLite")
             if field == 'pass_hash':  # updating password field
                 cursor.execute('''Update Password_Store SET pass_hash = ? WHERE id = ?''',
-                               (data, id))  # 2md failed method
+                               (data, id_))  # 2md failed method
             else:
-                cursor.execute('''UPDATE Password_Store SET desc = ? WHERE id = ?''', (data, id))
+                cursor.execute('''UPDATE Password_Store SET desc = ? WHERE id = ?''', (data, id_))
             sqlite_connection.commit()
             print("Record Updated successfully ")
             return True
@@ -85,7 +88,7 @@ class Sql:
         finally:
             self.close()
 
-    def append_database(self, new_passwd, pw_description):
+    def append_database(self, new_passwd, pw_description) -> bool:
         """
         :param new_passwd: entry's password to append
         :param pw_description: entry's password description to append
@@ -118,10 +121,10 @@ class Sql:
         finally:
             self.close()
 
-    def open_database(self):
+    def open_database(self) -> Union[list, bool]:
         """
-        :param master_pw:
-        :return:
+        Open the database
+        :return: list(entries in database)
         """
         #  sqlite_connection = self.sqlite_connection
         sqlite_connection = self.open()
@@ -149,10 +152,11 @@ class Sql:
         finally:
             self.close()
 
-    def select_from_db(self, id):
+    def select_from_db(self, id_: int) -> Union[list, bool]:
         """
         Grab a certain password from the database
-        :param id: primary key of password to get
+        :rtype: object
+        :param id_: primary key of password to get
         :return: aes encrypted password
         """
         # sqlite_connection = self.sqlite_connection
@@ -163,10 +167,10 @@ class Sql:
                 print("Connected to SQLite")
 
             sql_select_query = """select * from Password_Store where id = ?"""
-            cursor.execute(sql_select_query, (id,))
+            cursor.execute(sql_select_query, (id_,))
             record = cursor.fetchone()
             if debug:
-                print("Sql library: Retrieving ID:", id)
+                print("Sql library: Retrieving ID:", id_)
             return record
 
         except sqlite3.Error as error:
@@ -175,7 +179,7 @@ class Sql:
         finally:
             self.close()
 
-    def delete_from_database(self, id):
+    def delete_from_database(self, id_) -> Union[str, bool]:
         sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()
@@ -183,7 +187,7 @@ class Sql:
                 print("Connected to SQLite")
             # Deleting single record now
             sql_delete_query = """DELETE from Password_Store where id = ?"""
-            cursor.execute(sql_delete_query, (id,))
+            cursor.execute(sql_delete_query, (id_,))
             sqlite_connection.commit()
             return "Record deleted successfully "
 
