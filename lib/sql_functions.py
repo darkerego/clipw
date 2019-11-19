@@ -2,7 +2,8 @@ import sqlite3
 from sqlite3.dbapi2 import Connection
 
 from .clipw_conf import *
-from typing import  Union
+from typing import Union
+
 
 class Sql:
     """
@@ -102,14 +103,21 @@ class Sql:
                 print("Connected to SQLite")
             data_copy = cursor.execute("select count(*) from Password_Store")
             values = data_copy.fetchone()
-            id = int(values[0]) + 1
+            id_ = int(values[0])
             sqlite_insert_with_param = """INSERT INTO 'Password_Store'
                               ('id', 'desc', 'pass_hash') 
                               VALUES (?, ?, ?);"""
+            attempts = 1  # Make sure that ID is unique
+            while True:
+                try:
+                    data_tuple = (id_ + attempts, pw_description, new_passwd)
+                    cursor.execute(sqlite_insert_with_param, data_tuple)
+                except sqlite3.Error:
+                    attempts += 1
+                else:
+                    sqlite_connection.commit()
+                    break
 
-            data_tuple = (id, pw_description, new_passwd)
-            cursor.execute(sqlite_insert_with_param, data_tuple)
-            sqlite_connection.commit()
             if debug:
                 print("Python Variables inserted successfully into SqliteDb_developers table")
 

@@ -291,7 +291,7 @@ def cleanup() -> None:
         print("\033c", end="")
 
 
-def app():
+def app() -> None:
     """
     Program main logic
 
@@ -385,37 +385,26 @@ def app():
         cleanup()
 
 
-class TimeOutTime:
-    """
-    Empty object to hold specified timeout seconds
-    """
-
-    def __init__(self, secs):
-        """
-        Init Function
-        :param secs: seconds before timeout
-        """
-        self.secs = secs
-
-    def get(self):
-        """
-        Return specified seconds
-        :return: secs
-        """
-        return int(self.secs)
-
-
 class Watchdog:
     """
     Class to kill process if idle for specified time \
     default: 600 seconds / ten minutes
     """
     def __init__(self, _timeout=600):
+        """
+        Init function for Watchdog class
+        :param _timeout: seconds before timeout
+        """
         self.timeout = _timeout
         self._t = None
         self.wd_debug = False  # debug messages
 
-    def do_expire(self):
+    def do_expire(self) -> None:
+        """
+        Reset console (to clear output) and then kill this process
+
+        :return: None
+        """
         cleanup()
         kill(getpid(), signal.SIGKILL)
 
@@ -423,17 +412,17 @@ class Watchdog:
         print("\nTimeout expired, exiting for security...")
         self.do_expire()
 
-    def start(self):
+    def start(self) -> None:
         if self._t is None:
             self._t = threading.Timer(self.timeout, self._expire)
             self._t.start()
 
-    def stop(self):
+    def stop(self) -> None:
         if self._t is not None:
             self._t.cancel()
             self._t = None
 
-    def refresh(self):
+    def refresh(self) -> None:
         if self.wd_debug:
             print('Debug message: watchdog refresh.')
         if self._t is not None:
@@ -441,7 +430,7 @@ class Watchdog:
             self.start()
 
 
-def main():
+def main() -> None:
     try:
         app()
     except KeyboardInterrupt:
