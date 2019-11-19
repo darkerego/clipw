@@ -13,6 +13,7 @@ class HashPass:
     Wrapper Class for password hashing functions
     """
     def __init__(self):
+        #  TODO: Remove this useless init function
         """
         Empty __init__ function
         """
@@ -34,6 +35,7 @@ class HashPass:
         """
         Check that password length is AES compliant, add padding if not
         :param pw: password
+
         :return: password with buffering
         """
 
@@ -55,8 +57,15 @@ class HashPass:
 
     def is_correct_password(self, salt: bytes, pw_hash: bytes, password: str) -> bool:
         """
+        Function to check pw to unlock db:
         Given a previously-stored salt and hash, and a password provided by a user
         trying to log in, check whether the password is correct.
+        :param salt: salt
+        :param pw_hash: hash
+        :param password: check against this user supplied password
+
+        :return: bool
+
         """
 
         return hmac.compare_digest(
@@ -86,6 +95,7 @@ class HashPass:
     def store_master_password(self) -> bool:
         """
         Upon init, store users master key to disc
+
         :return: True on success
         """
         try:
@@ -140,6 +150,7 @@ class HashPass:
     def store_password(self) -> str:
         """
         Function to get a password and confirm user enters it twice correctly.
+
         :return: password
         """
         while True:
@@ -156,6 +167,7 @@ class HashPass:
         """
         Generate a random password of length n
         :param n: length of password to generate
+
         :return: password string
         """
         random_source = string.ascii_letters + string.digits + string.punctuation

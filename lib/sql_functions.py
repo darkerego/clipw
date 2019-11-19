@@ -63,13 +63,14 @@ class Sql:
 
     def edit_database(self, id_, data, field) -> Union[bool, str]:
         """
-        Broken function to update a field of a row in the table
+        FIXED Function to update a field of a row in the table
         :param id_: primary key id for WHERE clause
         :param data: edited field data to replace in current db entry
         :param field: either desc (description) or pass_hash (password hash of entry)
-        :return: True om success, false om fail
+
+        :return: bool
         """
-        #  sqlite_connection = self.sqlite_connection
+
         sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()  # define our sqlite connection
@@ -93,6 +94,7 @@ class Sql:
         """
         :param new_passwd: entry's password to append
         :param pw_description: entry's password description to append
+
         :return:
         """
         #  sqlite_connection = self.sqlite_connection
@@ -132,6 +134,7 @@ class Sql:
     def open_database(self) -> Union[list, bool]:
         """
         Open the database
+
         :return: list(entries in database)
         """
         #  sqlite_connection = self.sqlite_connection
@@ -165,6 +168,7 @@ class Sql:
         Grab a certain password from the database
         :rtype: object
         :param id_: primary key of password to get
+
         :return: aes encrypted password
         """
         # sqlite_connection = self.sqlite_connection
@@ -188,6 +192,12 @@ class Sql:
             self.close()
 
     def delete_from_database(self, id_) -> Union[str, bool]:
+        """
+        Delete an entry from the database
+        :param id_: primary key id
+
+        :return: str or False
+        """
         sqlite_connection = self.open()
         try:
             cursor = sqlite_connection.cursor()

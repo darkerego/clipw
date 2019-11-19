@@ -6,10 +6,16 @@ Python3 Powered Command Line Password Manager
 
 
 <p>Clipw is a very simply, secure (audits welcome) command line interface, python3 powered 
-password manager! Store a password, and a description; with the option to create secure random 
+password manager utilizing AES-256 (via *pure python powered* pyaes)! 
+Store passwords, along with a description; with the option to create secure random 
 passwords. Notice: This is work in progress. New features will be added as I get to them. 
 If you want to fork and help out, pull requests are welcome.
 </p>
+
+<i>
+Note: So far only tested on Android (termux) & Linux - TODO: test on windows , osx, etc
+</i>
+
 
 ### Features:
 
@@ -17,9 +23,13 @@ If you want to fork and help out, pull requests are welcome.
 - Passwords encrypted in AES-CRT using pure python package `pyaes`
 - Libs organized into neat packages for easy reuse or expansion
 - Functional setup.py script includes
-- Option to store or generate a random password
+- Option to store or generate a random password of `n` length
 - Simple cli friendly interface
+  - Interactive mode 
+    - Keeps db unlocked until timeout expires for security
+  - Quick command line functionality with argparse
 - Pure python3
+  - Encryption uses `pyaes`, no OS libraries needed.
 
 
 
@@ -27,8 +37,8 @@ If you want to fork and help out, pull requests are welcome.
 ### Installation:
 
 - Clone this repository to your computer. 
-- Run pip3 install -r requirements.txt to install dependencies )
-- Now includes setup.py:
+- Run pip3 install -r requirements.txt to install dependencies
+- Install via setup.py:
 
 <pre>
 $ python3 setup.py build

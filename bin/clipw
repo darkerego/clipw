@@ -316,6 +316,9 @@ def app() -> None:
         aes = aes_lib.HandleAes(key=hash_pass.get_master_password())
 
         if args.interactive:
+            """
+            Interactive mode - keep open, prompt for input, kill if idle for configurable timeout (for security)
+            """
             timeout = args.timeout
             wd = Watchdog(timeout)
             wd.start()
